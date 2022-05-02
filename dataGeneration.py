@@ -11,10 +11,10 @@ import numpy as np
 import scipy.sparse.linalg as lin
 import time
 import os
+import sys
 
 import fractalGeneration
 import matrixGeneration
-
 
 def corners(order,detail,recalculate):
     print("Calculate corners:")
@@ -98,11 +98,11 @@ def insidePointsRays(order,detail,recalculate):
         np.save(dataFileName,data)
 
 
-def insidePointsFill(order,detail,recalculate):
-    print("Find inside points (ray):")
+def insidePointsWinding(order,detail,recalculate):
+    print("Find inside points (winding):")
     
     dataFileName=os.path.join("fractalData",f"inside_order{order}_detail{detail}.npy")
-    timeFileName=os.path.join("fractalData","insideFillTimes.npy")
+    timeFileName=os.path.join("fractalData","insideWindingTimes.npy")
     
     if (not recalculate and os.path.exists(dataFileName)):
         print(f"Order {order} detail {detail} already calculated.")
@@ -114,8 +114,7 @@ def insidePointsFill(order,detail,recalculate):
         boundaryMatrix=np.load(boundaryMatrixFileName)
         
         start = time.time()
-        #not implemented
-        insideMatrix=fractalGeneration.findInsidePointsRay(corners, boundaryMatrix)
+        insideMatrix=fractalGeneration.findInsidePointsWinding(corners,boundaryMatrix)
         end = time.time()
         
         print("Time elapsed = %s" % (end - start))
@@ -155,7 +154,7 @@ def stencilMatrix(order,detail,recalculate,stencil):
         
         
         print("Time elapsed = %s" % (end - start))
-        
+
         data=stencilMatrix
         
         times=np.load(timeFileName)
@@ -178,7 +177,7 @@ def eigensolutions(order,detail,k,recalculate,stencil):
         
     else:
         stencilMatrixFileName=os.path.join(folderName,f"stencilMatrix_order{order}_detail{detail}.npy")
-        stencilMatrix=np.load(stencilMatrixFileName,allow_pickle=True)
+        stencilMatrix=np.load(stencilMatrixFileName,allow_pickle=True).item()
         
         if stencil[0]=="L":
             prefactor=-1
@@ -189,7 +188,8 @@ def eigensolutions(order,detail,k,recalculate,stencil):
         
         
         start = time.time()
-        vals,vecs=lin.eigsh(prefactor*stencilMatrix,k=k,return_eigenvectors=True,which="SM")
+        #vals,vecs=lin.eigsh(prefactor*stencilMatrix,k=k,return_eigenvectors=True,which="SM")
+        vals,vecs=lin.eigsh(prefactor*stencilMatrix,k=k,return_eigenvectors=True,sigma=0,which="LM")
         end = time.time()
         
         print("Time elapsed = %s" % (end - start))

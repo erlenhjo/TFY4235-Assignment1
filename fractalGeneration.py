@@ -38,13 +38,13 @@ def mutate_line(template,directions):
 
 
 def generatePath(order):
-    scale_factor=4**order  #length of square side
+    global directions,template
     
+    scale_factor=4**order  #length of square side
     line_segment=np.copy(template)
 
     for n in range(1,order):
         line_segment=mutate_line(line_segment, directions)
-    
     
     q=8**order        #number of points in a mutated line including one endpoint
 
@@ -99,7 +99,7 @@ def generateBoundaryMatrix(path):
     return boundaryMatrix
 
 @njit(cache=True)
-def findInsidePointsRays(path,boundary):
+def findInsidePointsWinding(path,boundary):
     size=max(path[0])+1
     inside=np.zeros((size,size),dtype=np.int8)
     wasUnder=False
@@ -126,9 +126,37 @@ def findInsidePointsRays(path,boundary):
             wasOver=True
             wasUnder=False
     
-    
-    
     return inside-inside*boundary
+
+@njit(cache=True)
+def findInsidePointsRays(path,boundary):
+    size=max(path[0])+1
+    inside=np.zeros((size,size),dtype=np.int8)
+    wasUnder=False
+    wasOver=False
+    
+    for n in range(np.shape(path)[1]-1):
+        
+        cur_y=size-1-path[1,n]
+        cur_x=path[0,n]
+    
+        if path[1,n]==path[1,n+1]:
+            continue
+    
+        elif (path[1,n]<path[1,n+1]):
+            if wasUnder:
+                for i in range(cur_x):
+                    inside[cur_y,i]+=1
+            wasUnder=True
+            wasOver=False
+        elif (path[1,n]>path[1,n+1]):
+            if wasOver:
+                for i in range(cur_x):
+                    inside[cur_y,i]+=1 
+            wasOver=True
+            wasUnder=False
+    
+    return np.mod(inside,2)-np.mod(inside,2)*boundary
 
 @njit(cache=True)
 def recreateFractal(eigenvector,inside):
